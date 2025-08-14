@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:patrimonios/screens/cadastro_patrimonio_screen.dart';
 import 'package:patrimonios/widgets/empty_state.dart';
 
 class PatrimonioScreen extends StatelessWidget {
   const PatrimonioScreen({super.key});
+
+    void _abrirCadastroPatrimonio(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CadastroPatrimonioScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +24,6 @@ class PatrimonioScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Card do valor total
           Container(
             margin: EdgeInsets.all(16),
             padding: EdgeInsets.all(20),
@@ -57,7 +66,6 @@ class PatrimonioScreen extends StatelessWidget {
             ),
           ),
           
-          // Filtro e botão adicionar
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -81,7 +89,7 @@ class PatrimonioScreen extends StatelessWidget {
                 ),
                 SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: () {},
+              onPressed: () => _abrirCadastroPatrimonio(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -100,13 +108,12 @@ class PatrimonioScreen extends StatelessWidget {
             ),
           ),
           
-          // Estado vazio
           Expanded(
             child: EmptyState(
               icon: Icons.inventory_2_outlined,
               title: 'Nenhum item de patrimônio cadastrado',
               buttonText: 'Adicionar primeiro item',
-              onPressed: () {},
+              onPressed: () => _abrirCadastroPatrimonio(context),
             ),
           ),
         ],
