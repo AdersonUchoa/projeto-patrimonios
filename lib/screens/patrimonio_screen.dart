@@ -92,48 +92,73 @@ class _PatrimonioScreenState extends State<PatrimonioScreen> {
 
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Filtrar por categoria',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: const Text('Todas as categorias'),
-              leading: Radio<int?>(
-                value: null,
-                groupValue: _categoriaSelecionada,
-                onChanged: (value) {
-                  setState(() {
-                    _categoriaSelecionada = null;
-                    _nomeCategoriaSelecionada = 'Todas as categorias';
-                  });
-                  _carregarDados();
-                  Navigator.pop(context);
-                },
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Indicador de arrastar
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            ...categorias.map((categoria) => ListTile(
-              title: Text(categoria.nome),
-              leading: Radio<int?>(
-                value: categoria.id,
-                groupValue: _categoriaSelecionada,
-                onChanged: (value) {
-                  setState(() {
-                    _categoriaSelecionada = categoria.id;
-                    _nomeCategoriaSelecionada = categoria.nome;
-                  });
-                  _carregarDados();
-                  Navigator.pop(context);
-                },
+              const Text(
+                'Filtrar por categoria',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            )),
-          ],
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    ListTile(
+                      title: const Text('Todas as categorias'),
+                      leading: Radio<int?>(
+                        value: null,
+                        groupValue: _categoriaSelecionada,
+                        onChanged: (value) {
+                          setState(() {
+                            _categoriaSelecionada = null;
+                            _nomeCategoriaSelecionada = 'Todas as categorias';
+                          });
+                          _carregarDados();
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                    ...categorias.map((categoria) => ListTile(
+                      title: Text(categoria.nome),
+                      leading: Radio<int?>(
+                        value: categoria.id,
+                        groupValue: _categoriaSelecionada,
+                        onChanged: (value) {
+                          setState(() {
+                            _categoriaSelecionada = categoria.id;
+                            _nomeCategoriaSelecionada = categoria.nome;
+                          });
+                          _carregarDados();
+                          Navigator.pop(context);
+                        },
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
