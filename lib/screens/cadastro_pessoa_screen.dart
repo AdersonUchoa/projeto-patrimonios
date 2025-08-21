@@ -122,6 +122,7 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: const Text(
                         'Salvar',
@@ -130,16 +131,19 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Cancelar',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white10,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[600],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
                     ),
                   ),
