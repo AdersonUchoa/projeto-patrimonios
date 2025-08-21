@@ -45,13 +45,25 @@ class _CadastroCategoriaScreenState extends State<CadastroCategoriaScreen> {
         observacoes: _observacoesController.text.trim(),
       );
 
-      if (widget.categoria == null) {
-        await DatabaseHelper.instance.inserirCategoria(categoria);
-      } else {
-        await DatabaseHelper.instance.atualizarCategoria(categoria);
-      }
+      try {
+        if (widget.categoria == null) {
+          await DatabaseHelper.instance.inserirCategoria(categoria);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Categoria cadastrada com sucesso')),
+          );
+        } else {
+          await DatabaseHelper.instance.atualizarCategoria(categoria);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Categoria atualizada com sucesso')),
+          );
+        }
 
-      Navigator.pop(context, true);
+        Navigator.pop(context, true);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar: $e')),
+        );
+      }
     }
   }
 
@@ -62,7 +74,7 @@ class _CadastroCategoriaScreenState extends State<CadastroCategoriaScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isEdit ? 'Editar Categoria' : 'Nova Categoria',
-            style: const TextStyle(color: Colors.black)),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -96,9 +108,16 @@ class _CadastroCategoriaScreenState extends State<CadastroCategoriaScreen> {
                 ),
                 value: _tipoSelecionado,
                 items: const [
-                  DropdownMenuItem(value: 'Aluno', child: Text('Aluno')),
-                  DropdownMenuItem(value: 'Professor', child: Text('Professor')),
-                  DropdownMenuItem(value: 'Funcionário', child: Text('Funcionário')),
+                  DropdownMenuItem(value: 'Móveis', child: Text('Móveis')),
+                  DropdownMenuItem(value: 'Eletrônicos', child: Text('Eletrônicos')),
+                  DropdownMenuItem(value: 'Informática', child: Text('Informática')),
+                  DropdownMenuItem(value: 'Veículos', child: Text('Veículos')),
+                  DropdownMenuItem(value: 'Equipamentos', child: Text('Equipamentos')),
+                  DropdownMenuItem(value: 'Imóveis', child: Text('Imóveis')),
+                  DropdownMenuItem(value: 'Ferramentas', child: Text('Ferramentas')),
+                  DropdownMenuItem(value: 'Livros', child: Text('Livros')),
+                  DropdownMenuItem(value: 'Máquinas', child: Text('Máquinas')),
+                  DropdownMenuItem(value: 'Outros', child: Text('Outros')),
                 ],
                 onChanged: (value) {
                   setState(() {
@@ -122,7 +141,7 @@ class _CadastroCategoriaScreenState extends State<CadastroCategoriaScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.multiline,
-                maxLines: null,
+                maxLines: 3,
               ),
               const SizedBox(height: 24),
               Row(
@@ -135,6 +154,7 @@ class _CadastroCategoriaScreenState extends State<CadastroCategoriaScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: const Text(
                         'Salvar',
@@ -143,16 +163,19 @@ class _CadastroCategoriaScreenState extends State<CadastroCategoriaScreen> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Cancelar',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white10,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[600],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
                     ),
                   ),
