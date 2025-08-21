@@ -128,6 +128,7 @@ class _PessoasScreenState extends State<PessoasScreen> {
                 final pessoa = pessoas[index];
                 return Card(
                   child: ListTile(
+                    leading: const Icon(Icons.person, color: Colors.green),
                     title: Text(pessoa.nome),
                     subtitle: Text(
                       [
