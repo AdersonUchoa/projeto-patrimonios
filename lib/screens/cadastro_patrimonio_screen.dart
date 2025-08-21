@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:patrimonios/db/database_helper.dart';
+import 'package:patrimonios/models/patrimonio.dart';
+import 'package:patrimonios/models/categoria.dart';
+import 'package:patrimonios/models/localizacao.dart';
+import 'package:patrimonios/models/pessoa.dart';
 
 class CadastroPatrimonioScreen extends StatefulWidget {
-  const CadastroPatrimonioScreen({super.key});
+  final Patrimonio? patrimonio;
+
+  const CadastroPatrimonioScreen({super.key, this.patrimonio});
 
   @override
   State<CadastroPatrimonioScreen> createState() =>
@@ -19,10 +26,62 @@ class _CadastroPatrimonioScreenState extends State<CadastroPatrimonioScreen> {
   final _descricaoController = TextEditingController();
   final _dataController = TextEditingController();
 
-  String? _categoriaSelecionada;
-  String? _responsavelSelecionado;
-  String? _localizacaoSelecionada;
+  int? _categoriaSelecionada;
+  int? _responsavelSelecionado;
+  int? _localizacaoSelecionada;
   DateTime? _dataSelecionada;
+
+  Future<List<Categoria>>? _categoriasFuture;
+  Future<List<Pessoa>>? _pessoasFuture;
+  Future<List<Localizacao>>? _localizacoesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarDados();
+    _preencherFormulario();
+  }
+
+  void _carregarDados() {
+    _categoriasFuture = DatabaseHelper.instance.listarCategorias();
+    _pessoasFuture = DatabaseHelper.instance.listarPessoas();
+    _localizacoesFuture = DatabaseHelper.instance.listarLocalizacoes();
+  }
+
+  void _preencherFormulario() {
+    if (widget.patrimonio != null) {
+      final patrimonio = widget.patrimonio!;
+      _codigoController.text = patrimonio.codigo;
+      _nomeItemController.text = patrimonio.nome;
+      _valorController.text = patrimonio.valor.toStringAsFixed(2).replaceAll('.', ',');
+      _descricaoController.text = patrimonio.descricao;
+      _categoriaSelecionada = patrimonio.categoriaId;
+      _responsavelSelecionado = patrimonio.pessoaId;
+      _localizacaoSelecionada = patrimonio.localizacaoId;
+
+      // Converter a data de string para DateTime
+      try {
+        _dataSelecionada = DateTime.parse(patrimonio.dataAquisicao);
+        _dataController.text = DateFormat('dd/MM/yyyy').format(_dataSelecionada!);
+      } catch (e) {
+        // Se a data já estiver no formato dd/MM/yyyy
+        _dataController.text = patrimonio.dataAquisicao;
+        try {
+          final parts = patrimonio.dataAquisicao.split('/');
+          if (parts.length == 3) {
+            _dataSelecionada = DateTime(
+              int.parse(parts[2]),
+              int.parse(parts[1]),
+              int.parse(parts[0]),
+            );
+          }
+        } catch (e) {
+          // Se não conseguir converter, use a data atual
+          _dataSelecionada = DateTime.now();
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -34,18 +93,51 @@ class _CadastroPatrimonioScreenState extends State<CadastroPatrimonioScreen> {
     super.dispose();
   }
 
-  void _salvar() {
+  void _salvar() async {
     if (_formKey.currentState!.validate()) {
-      print('Código: ${_codigoController.text}');
-      print('Nome: ${_nomeItemController.text}');
-      print('Categoria: $_categoriaSelecionada');
-      print('Valor: ${_valorController.text}');
-      print('Data aquisição: ${_dataController.text}');
-      print('Responsável: $_responsavelSelecionado');
-      print('Localização: $_localizacaoSelecionada');
-      print('Descrição: ${_descricaoController.text}');
+      try {
+        // Converter o valor de string para double
+        final valorString = _valorController.text.replaceAll(',', '.');
+        final valor = double.parse(valorString);
 
-      Navigator.pop(context);
+        // Converter a data para formato ISO
+        String dataFormatada;
+        if (_dataSelecionada != null) {
+          dataFormatada = _dataSelecionada!.toIso8601String().split('T')[0];
+        } else {
+          dataFormatada = DateTime.now().toIso8601String().split('T')[0];
+        }
+
+        final patrimonio = Patrimonio(
+          id: widget.patrimonio?.id,
+          codigo: _codigoController.text.trim(),
+          nome: _nomeItemController.text.trim(),
+          categoriaId: _categoriaSelecionada,
+          pessoaId: _responsavelSelecionado,
+          localizacaoId: _localizacaoSelecionada,
+          dataAquisicao: dataFormatada,
+          valor: valor,
+          descricao: _descricaoController.text.trim(),
+        );
+
+        if (widget.patrimonio == null) {
+          await DatabaseHelper.instance.inserirPatrimonio(patrimonio);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Patrimônio cadastrado com sucesso')),
+          );
+        } else {
+          await DatabaseHelper.instance.atualizarPatrimonio(patrimonio);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Patrimônio atualizado com sucesso')),
+          );
+        }
+
+        Navigator.pop(context, true);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar: $e')),
+        );
+      }
     }
   }
 
@@ -64,13 +156,30 @@ class _CadastroPatrimonioScreenState extends State<CadastroPatrimonioScreen> {
     }
   }
 
+  String? _validarValor(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'O valor é obrigatório';
+    }
+    
+    final valorString = value.replaceAll(',', '.');
+    final valor = double.tryParse(valorString);
+    
+    if (valor == null || valor <= 0) {
+      return 'Digite um valor válido';
+    }
+    
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isEdit = widget.patrimonio != null;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Novo item do patrimônio',
-          style: TextStyle(color: Colors.black),
+        title: Text(
+          isEdit ? 'Editar Patrimônio' : 'Novo item do patrimônio',
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -81,65 +190,91 @@ class _CadastroPatrimonioScreenState extends State<CadastroPatrimonioScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
                 controller: _codigoController,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Código do patrimônio *',
+                  hintText: 'Digite o código único do item',
                 ),
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'O código é obrigatório' : null,
+                    v == null || v.trim().isEmpty ? 'O código é obrigatório' : null,
               ),
               const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _nomeItemController,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Nome do item *',
+                  hintText: 'Digite o nome do item',
                 ),
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'O nome é obrigatório' : null,
+                    v == null || v.trim().isEmpty ? 'O nome é obrigatório' : null,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Categoria *',
-                  border: OutlineInputBorder(),
-                ),
-                value: _categoriaSelecionada,
-                items: const [
-                  DropdownMenuItem(value: 'Móveis', child: Text('Móveis')),
-                  DropdownMenuItem(
-                    value: 'Eletrônicos',
-                    child: Text('Eletrônicos'),
-                  ),
-                  DropdownMenuItem(value: 'Outros', child: Text('Outros')),
-                ],
-                onChanged: (value) => setState(() {
-                  _categoriaSelecionada = value;
-                }),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Selecione uma categoria' : null,
+              
+              FutureBuilder<List<Categoria>>(
+                future: _categoriasFuture,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(
+                        labelText: 'Categoria *',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    );
+                  }
+                  
+                  final categorias = snapshot.data!;
+                  return DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Categoria *',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _categoriaSelecionada,
+                    items: categorias.map((categoria) {
+                      return DropdownMenuItem<int>(
+                        value: categoria.id,
+                        child: Text(categoria.nome),
+                      );
+                    }).toList(),
+                    onChanged: (value) => setState(() {
+                      _categoriaSelecionada = value;
+                    }),
+                    validator: (v) =>
+                        v == null ? 'Selecione uma categoria' : null,
+                  );
+                },
               ),
               const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _valorController,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Valor estimado *',
+                  hintText: 'Ex: 1500,00',
+                  prefixText: 'R\$ ',
                 ),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'O valor é obrigatório' : null,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: _validarValor,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                ],
               ),
               const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _dataController,
                 decoration: const InputDecoration(
                   labelText: 'Data de aquisição *',
                   border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today),
                 ),
                 readOnly: true,
                 onTap: _selecionarData,
@@ -147,42 +282,75 @@ class _CadastroPatrimonioScreenState extends State<CadastroPatrimonioScreen> {
                     v == null || v.isEmpty ? 'Selecione a data' : null,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Pessoa responsável (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-                value: _responsavelSelecionado,
-                items: const [
-                  DropdownMenuItem(value: 'Aluno', child: Text('Aluno')),
-                  DropdownMenuItem(
-                    value: 'Professor',
-                    child: Text('Professor'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Funcionário',
-                    child: Text('Funcionário'),
-                  ),
-                ],
-                onChanged: (value) =>
-                    setState(() => _responsavelSelecionado = value),
+              
+              FutureBuilder<List<Pessoa>>(
+                future: _pessoasFuture,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(
+                        labelText: 'Pessoa responsável (opcional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    );
+                  }
+                  
+                  final pessoas = snapshot.data!;
+                  return DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Pessoa responsável (opcional)',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _responsavelSelecionado,
+                    items: pessoas.map((pessoa) {
+                      return DropdownMenuItem<int>(
+                        value: pessoa.id,
+                        child: Text(pessoa.nome),
+                      );
+                    }).toList(),
+                    onChanged: (value) =>
+                        setState(() => _responsavelSelecionado = value),
+                  );
+                },
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Localização (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-                value: _localizacaoSelecionada,
-                items: const [
-                  DropdownMenuItem(value: 'Sala 1', child: Text('Sala 1')),
-                  DropdownMenuItem(value: 'Sala 2', child: Text('Sala 2')),
-                  DropdownMenuItem(value: 'Depósito', child: Text('Depósito')),
-                ],
-                onChanged: (value) =>
-                    setState(() => _localizacaoSelecionada = value),
+              
+              FutureBuilder<List<Localizacao>>(
+                future: _localizacoesFuture,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(
+                        labelText: 'Localização (opcional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    );
+                  }
+                  
+                  final localizacoes = snapshot.data!;
+                  return DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Localização (opcional)',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _localizacaoSelecionada,
+                    items: localizacoes.map((localizacao) {
+                      return DropdownMenuItem<int>(
+                        value: localizacao.id,
+                        child: Text(localizacao.nome),
+                      );
+                    }).toList(),
+                    onChanged: (value) =>
+                        setState(() => _localizacaoSelecionada = value),
+                  );
+                },
               ),
               const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _descricaoController,
                 decoration: const InputDecoration(
@@ -192,9 +360,10 @@ class _CadastroPatrimonioScreenState extends State<CadastroPatrimonioScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.multiline,
-                maxLines: null,
+                maxLines: 3,
               ),
               const SizedBox(height: 24),
+              
               Row(
                 children: [
                   Expanded(
@@ -205,6 +374,7 @@ class _CadastroPatrimonioScreenState extends State<CadastroPatrimonioScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: const Text(
                         'Salvar',
@@ -217,13 +387,16 @@ class _CadastroPatrimonioScreenState extends State<CadastroPatrimonioScreen> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.white10,
-
+                        backgroundColor: Colors.grey[600],
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('Cancelar', style: TextStyle(color: Colors.white, fontSize: 16),),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
                     ),
                   ),
                 ],

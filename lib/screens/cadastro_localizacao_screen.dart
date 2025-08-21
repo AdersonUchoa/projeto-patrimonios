@@ -54,7 +54,7 @@ class _CadastroLocalizacaoScreenState extends State<CadastroLocalizacaoScreen> {
       }
       
       if (mounted) {
-        Navigator.pop(context, true); // Retorna 'true' para indicar que a lista deve ser atualizada
+        Navigator.pop(context, true);
       }
     }
   }
